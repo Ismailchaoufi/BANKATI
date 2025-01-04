@@ -13,11 +13,13 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,6 +36,11 @@ public class AgentServicesImp implements AgentService{
     private final OtpRepository otpRepository;
     private final ObjectValidator<AgentDto> objectValidator;
 
+    // Methode pour charger les templates des emails de dossier de ressources
+    private String loadEmailTemplate(String templateName) throws IOException {
+        ClassPathResource resource = new ClassPathResource("templates/" + templateName);
+        return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    }
     @Override
     public AgentDto login(String email, String password) {
         objectValidator.validate(AgentDto.builder().email(email).password(password).build());
@@ -44,9 +51,9 @@ public class AgentServicesImp implements AgentService{
     @Override
     public void sendOTPtoResetPassword(String email) {
         Agent agent = agentRepository.findByEmail(email).orElseThrow(()->new EntityNotFoundException("Email not found"));
-        Path path = Paths.get("/Users/tarik/Desktop/ebanking/Agentapi/src/main/resources/templates/sendLinkPassword.html");
         try {
-            String htmlContent = new String(Files.readAllBytes(path));
+            //charger le template de sendPassword.html
+            String htmlContent = loadEmailTemplate("sendLinkPassword.html");
             int otp = generateOtp();
             String updatedHtmlContent = htmlContent.replace("{{otp}}", String.valueOf(otp));
             if(agent.getOtp() ==null){

@@ -13,10 +13,13 @@ import com.google.i18n.phonenumbers.Phonenumber;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,7 +34,11 @@ public class AccountServiceImpl  implements AccountService {
     private final AccountRepository accountRepository;
     private final JavaMailSender mailSender;
 
-
+    // Methode pour charger les templates des emails de dossier de ressources
+    private String loadEmailTemplate(String templateName) throws IOException {
+        ClassPathResource resource = new ClassPathResource("templates/" + templateName);
+        return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    }
     @Override
     public boolean openAccountByAgent(ClientDto clientDto, String accountType) {
         Client client = Client.builder()
@@ -52,9 +59,10 @@ public class AccountServiceImpl  implements AccountService {
                     .build();
             Account savedAccount =accountRepository.save(account);
 
-            Path path = Paths.get("/Users/tarik/Desktop/ebanking/Client-api/src/main/resources/templates/accountOpening.html");
+
             try {
-                String htmlContent = new String(Files.readAllBytes(path));
+                //charger le template de accountOpening.html
+                String htmlContent = loadEmailTemplate("accountOpening.html");
                 Map<String,String> maps = new HashMap<>();
                 maps.put("username",savedAccount.getClient().getEmail());
                 maps.put("accountType", savedAccount.getAccountName());

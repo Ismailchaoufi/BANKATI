@@ -12,6 +12,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,7 +37,11 @@ public class ClientServiceImpl implements ClientService {
     private final AgentVerifyEmail agentVerifyEmail;
     private final JavaMailSender mailSender;
 
-
+    // Methode pour charger les templates des emails de dossier de ressources
+    private String loadEmailTemplate(String templateName) throws IOException {
+        ClassPathResource resource = new ClassPathResource("templates/" + templateName);
+        return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    }
     @Override
     public boolean createClientByAgent(ClientDto client, MultipartFile file) {
         boolean emailExist = agentVerifyEmail.verifyEmail(client.email());
@@ -54,9 +59,10 @@ public class ClientServiceImpl implements ClientService {
 
                 // send Email to client
 
-                Path path = Paths.get("/Users/tarik/Desktop/ebanking/Client-api/src/main/resources/templates/sendPassword.html");
+
                 try {
-                    String htmlContent = new String(Files.readAllBytes(path));
+                    //charger le template de sendPassword.html
+                    String htmlContent = loadEmailTemplate("sendPassword.html");
                     Map<String,String> maps = new HashMap<>();
                     maps.put("clientName",savedClient.getLname());
                     maps.put("usernameClient",savedClient.getEmail());
@@ -97,9 +103,9 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public void sendOTPtoResetPassword(String email) {
         Client client = clientRepository.findByEmail(email).orElseThrow(()->new EntityNotFoundException("Email not found"));
-        Path path = Paths.get("/Users/tarik/Desktop/ebanking/Agentapi/src/main/resources/templates/sendLinkPassword.html");
         try {
-            String htmlContent = new String(Files.readAllBytes(path));
+            //charger le template de sendLinkPassword.html
+            String htmlContent = loadEmailTemplate("sendLinkPassword.html");
             int otp = generateOtp();
             String updatedHtmlContent = htmlContent.replace("{{otp}}", String.valueOf(otp));
             if(client.getOtp() ==null){
